@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# Central configuration shared by all menu actions.
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_NAME="hola-docker"
 IMAGE_NAME="${PROJECT_NAME}:v1.0.0"
@@ -8,6 +9,7 @@ APP_PORT=8080
 JAR_PATH="$SCRIPT_DIR/target/${PROJECT_NAME}-*.jar"
 
 jar_exists() {
+	# Find the project's executable JAR and store its actual versioned path.
 	local jar_files=("$SCRIPT_DIR"/target/"$PROJECT_NAME"-*.jar)
 	if [[ -f "${jar_files[0]}" ]]; then
 		JAR_PATH="${jar_files[0]}"
@@ -18,6 +20,7 @@ jar_exists() {
 }
 
 docker_image_exists() {
+	# Return success only when Docker can find the project's image locally.
 	if command -v docker >/dev/null 2>&1; then
 		if docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
 			return 0
@@ -30,6 +33,7 @@ docker_image_exists() {
 }
 
 check_prerequisites() {
+	# Check required commands; the local Maven Wrapper can replace mvn.
 	local commands=(java mvn docker)
 	local command_name
 	for command_name in "${commands[@]}"; do
@@ -44,6 +48,7 @@ check_prerequisites() {
 }
 
 package_application() {
+	# Clean old output, package without tests, and confirm that the JAR exists.
 	printf 'Building executable JAR...\n'
 	if (cd "$SCRIPT_DIR" && ./mvnw clean package -DskipTests); then
 		if jar_exists; then
@@ -59,6 +64,7 @@ package_application() {
 }
 
 build_docker_image() {
+	# Require a packaged JAR before building the configured Docker image.
 	if jar_exists; then
 		:
 	elif [[ -d "$SCRIPT_DIR/target" ]]; then
@@ -84,6 +90,7 @@ build_docker_image() {
 }
 
 run_docker_container() {
+	# Check Docker and the image, then safely replace any conflicting container.
 	if ! command -v docker >/dev/null 2>&1; then
 		printf 'docker: not available. Install Docker before running the container.\n'
 		return 1
@@ -135,6 +142,7 @@ run_docker_container() {
 }
 
 show_application_status() {
+	# Report the JAR, image creation time, and containers running from the image.
 	if jar_exists; then
 		local jar_size
 		jar_size=$(du -h -- "$JAR_PATH" | cut -f1)
@@ -171,6 +179,7 @@ show_application_status() {
 	fi
 }
 
+# Keep showing the menu until the user chooses option 6 to exit.
 while true; do
 	printf '\n%s manager\n' "$PROJECT_NAME"
 	printf '1) Check system prerequisites\n'
