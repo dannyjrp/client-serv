@@ -1,56 +1,75 @@
 # Hola Docker
 
-Sample Spring Boot application. The Maven project and interactive management script are in `hola-docker/`.
+Proyecto de ejemplo basado en Spring Boot que expone un endpoint REST y puede ejecutarse tanto directamente como dentro de un contenedor Docker.
 
-## Requirements
+## Requisitos
 
-- JDK 25, including `javac`. On Ubuntu, install it with `sudo apt install openjdk-25-jdk`.
-- Docker Engine for image and container operations. The daemon must be running for Docker commands.
-- Maven does not need to be installed separately; the project includes the Maven Wrapper (`mvnw`).
+- Java 25 con `javac`.
+- Docker Engine funcionando.
+- Maven no es necesario si se usa el wrapper incluido (`./mvnw`).
 
-Check Java with:
+Para instalar la pila en Ubuntu o Debian puedes ejecutar:
+
+```bash
+./requirements.sh
+```
+
+Y verificar la versión instalada:
 
 ```bash
 java -version
 javac -version
 ```
 
-Both commands should report version 25.
+Ambos comandos deben mostrar Java 25.
 
-## Run from VS Code
+## Ejecutar la aplicación
 
-Open the repository root in VS Code, then use the integrated terminal:
+Desde la raíz del proyecto:
 
 ```bash
-cd hola-docker
 ./mvnw spring-boot:run
 ```
 
-The application starts at <http://localhost:8080>. The `/hello` endpoint returns `Hello Docker Danny Reina!`.
+La aplicación queda disponible en:
 
-Alternatively, open `HolaDockerApplication.java` and run its `main` method in VS Code.
+- http://localhost:8080
+- Endpoint: http://localhost:8080/hello
 
-## Interactive Manager
+La respuesta del endpoint es:
 
-Start the menu from the repository root with:
+```text
+Hello Docker Danny Reina!
+```
+
+También puedes ejecutar la clase principal desde VS Code o desde tu IDE favorito abriendo `HolaDockerApplication.java`.
+
+## Script de gestión interactiva
+
+El repositorio incluye un menú para compilar, verificar requisitos, crear la imagen Docker y arrancar el contenedor:
 
 ```bash
-cd hola-docker
 ./gestor.sh
 ```
 
-The menu provides these options:
+Opciones disponibles:
 
-1. **Check system prerequisites**: checks for `java`, Maven (`mvn` or the project's `mvnw`), and `docker`.
-2. **Package the application**: runs `./mvnw clean package -DskipTests`. The executable JAR is generated under `hola-docker/target/` (currently `hola-docker-0.0.1-SNAPSHOT.jar`).
-3. **Build the Docker image**: requires a generated JAR and builds `hola-docker:v1.0.0` from the Dockerfile.
-4. **Run the Docker container**: requires Docker and the image. Starts `hola-docker-container`, mapping port 8080. If a container with that name is running, the script asks whether to stop and remove it first; a stopped container with that name is removed automatically.
-5. **Show application status**: reports whether the JAR exists and its size, whether the Docker image exists and when it was created, and whether an application container is running. It reports when Docker status cannot be queried.
-6. **Exit**: displays a farewell message and ends the script.
+1. Comprobar requisitos del sistema
+2. Empaquetar la aplicación
+3. Construir la imagen Docker
+4. Ejecutar el contenedor
+5. Mostrar el estado de la aplicación
+6. Salir
 
-## Tests
+## Empaquetado y pruebas
 
-From `hola-docker/`, run:
+Generar el JAR:
+
+```bash
+./mvnw clean package -DskipTests
+```
+
+Ejecutar tests:
 
 ```bash
 ./mvnw test
@@ -58,11 +77,26 @@ From `hola-docker/`, run:
 
 ## Docker
 
-First package the application, then build the image from `hola-docker/`:
+Primero empaqueta la aplicación y luego crea la imagen:
 
 ```bash
 ./mvnw clean package -DskipTests
 docker build -t hola-docker:v1.0.0 .
 ```
 
-The Dockerfile copies the generated JAR from `target/` to `/app/app.jar` and runs it with the Java 25 runtime. The Java 17 Alpine base image is currently commented out: a Java 17 runtime cannot execute a JAR compiled for Java 25.
+Ejecuta el contenedor:
+
+```bash
+docker run -d --name hola-docker-container -p 8080:8080 hola-docker:v1.0.0
+```
+
+La imagen usa Java 25 y el archivo JAR generado se copia a `/app/app.jar` en el contenedor.
+
+## Estructura principal
+
+- `src/main/java/.../HolaDockerApplication.java`: clase principal
+- `src/main/java/.../HolaController.java`: controlador REST
+- `Dockerfile`: definición de la imagen Docker
+- `gestor.sh`: menú interactivo para gestión del proyecto
+- `requirements.sh`: instalación de Java 25 y Maven
+- `pom.xml`: configuración de Maven y Spring Boot

@@ -50,7 +50,7 @@ check_prerequisites() {
 package_application() {
 	# Clean old output, package without tests, and confirm that the JAR exists.
 	printf 'Building executable JAR...\n'
-	if (cd "$SCRIPT_DIR" && ./mvnw clean package -DskipTests); then
+	if (cd "$SCRIPT_DIR" && mvn clean package -DskipTests); then
 		if jar_exists; then
 			printf 'Package completed. Generated JAR: %s\n' "$JAR_PATH"
 		else
