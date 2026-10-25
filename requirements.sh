@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# requirements.sh - Instala JDK 25 (Amazon Corretto) y Maven
+# requirements.sh - Instala JDK 25 (Amazon Corretto), Maven y Docker
 # Soporta dnf (Amazon Linux 2023) y apt (Ubuntu/Debian)
 
 set -e
@@ -46,17 +46,33 @@ elif [[ "$PKG_MGR" == "apt" ]]; then
     sudo apt-get install -y maven
 fi
 
+# --- Instalar Docker ---
+if [[ "$PKG_MGR" == "dnf" ]]; then
+    sudo dnf install -y docker
+    sudo systemctl start docker
+    sudo systemctl enable docker
+    sudo usermod -aG docker "$USER" || true
+elif [[ "$PKG_MGR" == "apt" ]]; then
+    # Instalación oficial de Docker para Ubuntu/Debian
+    sudo apt-get install -y ca-certificates curl gnupg
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update -y
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+fi
+
 # --- Configurar JAVA_HOME ---
+# Detectar el directorio de Java instalado
 JAVA_HOME_CANDIDATE=$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")
 if [[ -n "$JAVA_HOME_CANDIDATE" && -x "$JAVA_HOME_CANDIDATE/bin/javac" ]]; then
-    # Evitar duplicados en ~/.bashrc
-    if ! grep -q "JAVA_HOME=$JAVA_HOME_CANDIDATE" "$HOME/.bashrc" 2>/dev/null; then
-        echo "export JAVA_HOME=$JAVA_HOME_CANDIDATE" >> "$HOME/.bashrc"
-        echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> "$HOME/.bashrc"
-        echo "JAVA_HOME configurado en ~/.bashrc: $JAVA_HOME_CANDIDATE"
-    else
-        echo "JAVA_HOME ya estaba configurado en ~/.bashrc: $JAVA_HOME_CANDIDATE"
-    fi
+    echo "export JAVA_HOME=$JAVA_HOME_CANDIDATE" >> "$HOME/.bashrc"
+    echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> "$HOME/.bashrc"
+    echo "JAVA_HOME configurado en ~/.bashrc: $JAVA_HOME_CANDIDATE"
 else
     echo "Advertencia: no se pudo determinar JAVA_HOME automáticamente."
 fi
@@ -67,5 +83,6 @@ echo "=== Verificación ==="
 java -version 2>&1 | head -1
 javac -version 2>&1
 mvn -v 2>&1 | head -1
+docker --version 2>&1
 echo ""
 echo "Instalación completada. Ejecuta 'source ~/.bashrc' o abre una nueva terminal para aplicar JAVA_HOME."
